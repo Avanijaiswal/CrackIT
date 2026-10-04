@@ -1,0 +1,709 @@
+CRACKIT — PROJECT LOG
+======================
+A crowdsourced interview-experience platform. Users post structured interview
+experiences (company, role, rounds, questions), interact socially (like/comment),
+and search a company to see an aggregated report of what that company asks.
+
+Tech: Python + MySQL, command-line interface (no web framework).
+
+
+STEP 1 — Created GitHub repository
+- Made a new repo "crackit" on GitHub, initialized with a README.md.
+- This is the "remote" — the master copy of the project living on GitHub's servers.
+
+STEP 2 — Verified Git is installed
+- Ran `git --version` in VS Code terminal → confirmed Git 2.47.1 is installed.
+
+STEP 3 — Configured Git identity
+- Ran:
+    git config --global user.name "Your Name"
+    git config --global user.email "your.email@example.com"
+- This attaches name/email to every commit made on this computer (not just this project).
+
+STEP 4 — Cloned the repo locally
+- Copied the repo's HTTPS URL from GitHub.
+- Ran `git clone <url>` to download a full local copy of the repo onto the computer.
+- This created a "local repository" linked to the GitHub "remote".
+
+STEP 5 — Opened the project folder in VS Code
+- File > Open Folder > selected the cloned "crackit" folder.
+- Confirmed README.md shows in the sidebar and terminal path ends in /crackit.
+
+STEP 6 — Created .gitignore
+- Added a .gitignore file to tell Git which files/folders to NEVER upload to GitHub.
+- Ignored: venv/, env/, __pycache__/, *.pyc, .env, .vscode/, .DS_Store
+- Reason: virtual environment folders are huge/regeneratable, and .env will later
+  hold secrets (like the MySQL password) that must never be public.
+
+STEP 7 — First commit + push
+- Practiced the core Git cycle:
+    git add .gitignore
+    git commit -m "Add .gitignore file"
+    git push
+- Confirmed .gitignore now appears on GitHub.
+
+STEP 8 — Created Python virtual environment
+- Ran: python -m venv venv
+- This created an isolated, private space for this project's Python packages,
+  separate from the computer's global Python installation.
+
+STEP 9 — Activated the virtual environment
+- Ran: venv\Scripts\activate  (Windows)
+- Terminal prompt now shows (venv) prefix, confirming it's active.
+- Must be re-activated every time a new terminal is opened for this project.
+
+STEP 10 — Installed MySQL connector package
+- Ran: pip install mysql-connector-python
+- This is the library Python uses to talk to a MySQL database.
+- Ran: pip freeze > requirements.txt
+- This recorded the exact installed package + version, so the environment can be
+  recreated later with: pip install -r requirements.txt
+
+STEP 11 — Committed + pushed requirements.txt
+- git add requirements.txt
+- git commit -m "Add requirements.txt with mysql-connector-python dependency"
+- git push
+- Confirmed venv/ does NOT appear on GitHub (proof .gitignore is working).
+
+STEP 12 — Set up MySQL database
+- Used MySQL Workbench (already installed) since `mysql` command wasn't in PATH.
+- Connected to local MySQL instance via Workbench.
+- Ran: CREATE DATABASE crackit;
+- Confirmed "crackit" now appears in the Schemas panel.
+
+STEP 13 — Created database/connection.py
+- Made a "database" folder (Python package) containing:
+    - __init__.py  (empty, marks the folder as an importable package)
+    - connection.py (contains the Database class)
+- Database class has a connect() method that opens a MySQL connection using
+  mysql.connector, pointed at host=localhost, port=3306, database="crackit".
+- Added try/except error handling inside connect(): if the connection fails
+  (wrong password, server down, etc.), it prints a clear message and returns
+  None instead of crashing with a raw error — handled once at the source,
+  so every file that uses this class benefits automatically.
+
+STEP 14 — Moved password into .env file
+- Installed python-dotenv: pip install python-dotenv
+- Updated requirements.txt to include it.
+- Created .env in the root folder (NOT inside database/) holding:
+    DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+- .env is already in .gitignore, so it will never be uploaded to GitHub.
+- Updated database/connection.py to use os.getenv(...) + load_dotenv()
+  instead of hardcoded values — connection.py itself now contains no
+  real secrets, safe to be public on GitHub.
+- Verified with `git status` that .env does NOT appear as tracked/untracked —
+  confirms .gitignore is correctly protecting it.
+
+STEP 15 — Tested the database connection end-to-end
+- Created test_connection.py in the root folder.
+- Imported the Database class from database/connection.py and called .connect().
+- Used connection.is_connected() to verify the connection is genuinely live.
+- Ran: python test_connection.py
+- Output: "✅ Successfully connected to the crackit database!"
+- Confirms the full chain works: .env -> connection.py -> MySQL server -> crackit DB.
+
+STEP 16 — Created project tables (users, companies, experiences, rounds,
+          questions, comments, likes)
+
+         1. users
+
+Stores registered accounts.
+
+id — primary key
+name — user's display name
+email — unique, used for login
+password_hash — never store plain passwords; we'll hash it in Step 17
+contributor_score — a simple gamification counter (increases as they post/comment)
+2. companies
+
+One row per company (Google, Amazon, TCS, etc.) — created dynamically as users post experiences about new companies.
+
+id — primary key
+name — unique company name
+3. experiences
+
+The core post — one interview experience shared by a user.
+
+id — primary key
+user_id — who posted it (links to users)
+company_id — which company (links to companies)
+role — job role/title applied for
+outcome — Selected / Rejected / Pending
+is_anonymous — whether to hide the poster's name when displaying
+created_at — timestamp, auto-filled
+4. rounds
+
+Each experience can have multiple rounds (OA, Technical, HR, etc.) — one-to-many with experiences.
+
+id — primary key
+experience_id — which experience this round belongs to
+round_number — 1st round, 2nd round, etc.
+round_type — Technical / HR / Aptitude / GD / Managerial
+5. questions
+
+Each round can have multiple questions asked — one-to-many with rounds.
+
+id — primary key
+round_id — which round this question was asked in
+question_text — the actual question
+topic — tag like "DP", "SQL", "OOP" (filled by keyword-matching later)
+6. comments
+
+Threaded discussion under each experience post.
+
+id — primary key
+experience_id — which post this comment is on
+user_id — who commented
+comment_text — the comment itself
+created_at — timestamp
+7. likes
+
+Tracks which user liked which experience (prevents double-liking, powers like counts).
+
+id — primary key
+user_id — who liked it
+experience_id — which post was liked
+- Created database/schema.py with a create_tables() function.
+- Used cursor.execute("""...""") to run one CREATE TABLE IF NOT EXISTS per table.
+- ENGINE=InnoDB used on every table — explicitly chosen because:
+    - InnoDB actually enforces FOREIGN KEY constraints (MyISAM, the older
+      alternative engine, silently ignores them).
+    - Supports transactions (group multiple operations so they all succeed
+      or all fail together) — not used yet, but relevant later when posting
+      a full experience with multiple rounds/questions at once.
+    - Handles simultaneous reads/writes safely (row-level locking) — relevant
+      once multiple users can like/comment at the same time.
+    - InnoDB is MySQL's default engine anyway (5.5+), but written explicitly
+      so it's clear and intentional rather than relying on a silent default.
+- Ran: python database/schema.py -> "✅ All tables created successfully."
+- Verified all 7 tables visible in MySQL Workbench under crackit > Tables.
+
+STEP 16b — Realized project needs proper layered architecture (discussion)
+- Clarified the standard layers and what each is actually responsible for:
+    - Model      -> plain structure only (e.g. a User class with just fields,
+                    no logic, no SQL)
+    - DAO         -> talks directly to the database with raw SQL (insert_user,
+                    get_user_by_email, etc.), returns data/Model objects
+    - Service     -> business logic sits here (e.g. check if email exists,
+                    hash password, then call DAO to save) — decides "what
+                    should happen"; DAO only knows "how to save/fetch"
+    - Database    -> lowest layer, only opens/closes the connection
+                    (already built: database/connection.py)
+- Correct flow: main.py (CLI) -> services/ -> dao/ -> database/connection.py -> MySQL
+                                            (models/ used by dao/service for structure)
+- Clarified that schema.py (table creation) is NOT one of these layers — it's
+  one-time/occasional setup/infrastructure code, a prerequisite the DAO layer
+  depends on, not part of the request-handling flow. Decided to move it out
+  of database/ to root-level schema.py, so database/ only ever means
+  "how to connect."
+- New planned structure:
+    crackit/
+    ├── database/          (connection.py only)
+    ├── models/            (plain structure classes, one per entity)
+    ├── dao/               (raw SQL per entity)
+    ├── services/           (business logic per entity)
+    ├── main.py             (CLI menu — calls services only)
+    ├── schema.py           (moved out of database/, creates all tables)
+
+PENDING DECISION — one file per layer (single dao.py, single service.py, single
+models.py for everything) vs. one file per entity (dao/user_dao.py,
+dao/experience_dao.py, dao/company_dao.py, etc.). Leaning toward one-file-per-
+entity as the more standard/scalable approach, but not yet confirmed.
+
+
+STEP 16 — Created the project tables
+- Created database/schema.py, separate from connection.py:
+    - connection.py = HOW to connect to MySQL
+    - schema.py = WHAT tables exist
+- Wrote CREATE TABLE IF NOT EXISTS statements for all 7 tables:
+    users, companies, experiences, rounds, questions, comments, likes
+- Used FOREIGN KEY constraints to link tables relationally
+  (e.g. experiences.user_id -> users.id), which is what will later make
+  aggregation queries (company reports) possible via JOINs.
+- Ran: python database/schema.py
+- Output: "✅ All tables created successfully (or already existed)."
+- Verified visually in MySQL Workbench: all 7 tables now exist under
+  crackit > Tables.
+
+STEP 17 — Built user registration with password hashing
+- Installed bcrypt: pip install bcrypt
+- Updated requirements.txt.
+- Created "services" folder (business-logic layer, sits between database
+  layer and future CLI interface):
+    - services/__init__.py (empty, marks folder as a package)
+    - services/auth_service.py
+- auth_service.py contains:
+    - hash_password(plain_password): converts plain text into a secure,
+      irreversible bcrypt hash (with random salt, so identical passwords
+      produce different hashes).
+    - register_user(name, email, plain_password): hashes the password,
+      then inserts a new row into the users table.
+- Used parameterized queries (%s placeholders + tuple of values) instead
+  of directly inserting user input into SQL strings — this prevents SQL
+  injection attacks.
+- Used try/except/finally around the INSERT so failures (e.g. duplicate
+  email, since email is UNIQUE) print a clear message instead of crashing,
+  and the connection always closes regardless of success/failure.
+- Ran: python services/auth_service.py
+- Output: "✅ User 'Test User' registered successfully!"
+- Verified in MySQL Workbench: users table now has a row with a long
+  scrambled password_hash string — NOT the plain password.
+
+STEP 18 — Built the login function
+- Added login_user(email, plain_password) to services/auth_service.py.
+- Used cursor(dictionary=True) so rows come back as dicts (access fields
+  by name, e.g. user["name"], instead of positional tuples).
+- Used a parameterized query (WHERE email = %s) to safely look up the user.
+- Used bcrypt.checkpw(entered_password, stored_hash) to verify the password —
+  this re-hashes the entered password using the same embedded salt and
+  compares results. This is the correct way to verify a bcrypt hash;
+  hashes are one-way and can never be "decrypted" back to plain text.
+- Returns the user's dict on success (so the caller knows WHO logged in),
+  or None if email not found / password wrong.
+- Tested successfully:
+    - Correct password -> "✅ Welcome back, Test User!"
+    - Wrong password -> "❌ Incorrect password."
+
+STEP 19 — Built main.py (CLI entry point)
+- Created main.py in the root folder — this is now the actual program you run.
+- Imports register_user and login_user from services/auth_service.py —
+  main.py handles ONLY menu/interaction logic, no database logic itself
+  (keeps the layered structure clean: interface -> services -> database).
+- current_user variable holds the logged-in user's info once login succeeds
+  (needed later for features like "post an experience as this user").
+- show_main_menu() displays options; handle_register()/handle_login() wrap
+  input() prompts around the existing service functions.
+- main() runs a while True loop showing the menu repeatedly until Exit.
+- Used match/case (Python 3.10+ pattern matching) instead of if/elif/else
+  to route the user's menu choice — case "1", case "2", case "3", case _
+  (default/fallback), functionally equivalent to if/elif/else.
+- Tested successfully: registered a new user, logged in with it, and
+  exited cleanly via option 3.
+
+STEP 20a — Built company_service.py (find-or-create pattern)
+- Created services/company_service.py.
+- get_or_create_company(company_name):
+    - First SELECTs by name to check if the company already exists.
+    - If found, returns its existing id (no duplicate created).
+    - If not found, INSERTs it and returns cursor.lastrowid (the new
+      auto-generated id).
+- This "find or create" pattern prevents duplicate company rows when
+  multiple users post about the same company (e.g. "Amazon").
+- Tested by calling get_or_create_company("Amazon") twice in a row —
+  both calls returned the SAME id, confirming no duplicate was created
+  on the second call.
+
+STEP 20b — Built experience_service.py
+- Created services/experience_service.py.
+- create_experience(user_id, company_name, role, outcome, is_anonymous):
+    - Calls get_or_create_company(company_name) to get a valid company_id
+      (reusing Step 20a's logic instead of duplicating lookup code).
+    - INSERTs a row into experiences linking user_id + company_id + role +
+      outcome + is_anonymous.
+    - Converts is_anonymous (True/False) to int (1/0) for MySQL's TINYINT.
+    - Returns the new experience's id via cursor.lastrowid, so rounds and
+      questions can be attached to it in the next steps.
+- Verified real user id in MySQL Workbench (SELECT id, name, email FROM
+  users;) before testing, to link the experience to a real user.
+- Tested: python services/experience_service.py
+- Output: "✅ Experience created (id: 1) for company 'Amazon'."
+- Verified in Workbench: SELECT * FROM experiences; shows the new row
+  with correct company_id matching Amazon.
+
+STEP 20c — Built round_service.py
+- Created services/round_service.py.
+- add_round(experience_id, round_number, round_type):
+    - INSERTs one row into rounds, linked to an experience_id.
+    - Kept deliberately simple — adds ONE round at a time. The "ask how
+      many rounds, then loop" interaction logic belongs in main.py (the
+      interface layer), not here (the database layer) — this keeps
+      add_round() reusable regardless of what calls it.
+    - Returns round_id via cursor.lastrowid, so questions can be attached
+      to a specific round next.
+- Tested: python services/round_service.py
+- Output: "✅ Round 1 (Technical) added." / "✅ Round 2 (HR) added."
+- Verified in Workbench: SELECT * FROM rounds; shows both rows correctly
+  linked to experience_id from Step 20b.
+
+STEP 20d — Built tagging_service.py (basic keyword-based topic tagging)
+- Created services/tagging_service.py.
+- TOPIC_KEYWORDS: a plain Python dictionary mapping topic names (DP,
+  Trees, Graphs, Arrays, SQL, System Design, OOP, Behavioral) to lists
+  of keyword phrases. Kept as Python data (not a DB table) for v1
+  simplicity — easy to edit/expand without a migration.
+- detect_topic(question_text):
+    - Lowercases the question text for case-insensitive matching.
+    - Loops through TOPIC_KEYWORDS, returns the first topic whose
+      keyword appears in the text.
+    - Falls back to "General" if nothing matches.
+- This is intentionally simple keyword matching, not real NLP — good
+  enough for v1, and this is exactly what will let the future "Company
+  Intelligence" report group/count questions by topic.
+- Tested with 4 sample questions:
+    - "merge sort" question -> "General" (no keyword match yet, expected —
+      keyword list can be expanded over time as real data comes in)
+    - SQL question -> "SQL"
+    - behavioral question -> "Behavioral"
+    - OOP question -> "OOP"
+
+STEP 20e — Built question_service.py (questions with auto-tagging)
+- Created services/question_service.py.
+- add_question(round_id, question_text):
+    - Calls detect_topic(question_text) from tagging_service.py to
+      auto-assign a topic BEFORE inserting — the person posting never
+      manually picks a topic themselves.
+    - INSERTs into questions (round_id, question_text, topic).
+    - Follows the same connect/try/insert/commit/except/finally shape
+      used in company_service, experience_service, and round_service —
+      this repeating pattern IS the project's architecture for "save one
+      thing to the database."
+- Tested: python services/question_service.py
+- Output: "✅ Question added (topic: SQL)." / "✅ Question added (topic: OOP)."
+- Verified in Workbench: SELECT * FROM questions; shows both rows,
+  correctly tagged and linked to round_id.
+
+
+  STEP 20f — Wired the full "post an experience" flow into main.py
+- Imported create_experience, add_round, add_question into main.py.
+- Added handle_post_experience():
+    - Guards the feature with "if current_user is None" — only logged-in
+      users can post (first real use of current_user since Step 19).
+    - Uses current_user["id"] as the real logged-in user's id (no more
+      hardcoded user_id=1 like the test scripts used).
+    - Asks for company/role/outcome, calls create_experience().
+    - Asks "how many rounds?" and loops that many times (for i in
+      range(1, num_rounds + 1)) — each iteration asks round type, saves
+      it via add_round(), then loops asking for questions one at a time
+      (while True + type 'done' to stop) via add_question().
+    - handle_post_experience() itself contains NO database/SQL logic —
+      it only orchestrates calls to the already-tested service functions.
+- Updated show_main_menu() and main()'s match/case to add option 3
+  "Post an Interview Experience" and moved Exit to option 4.
+- Tested full flow via CLI: logged in -> posted an experience with 2
+  rounds and multiple questions per round -> got "✅ Experience fully
+  posted! Thank you for contributing."
+- Verified in Workbench with linked queries (experiences -> rounds ->
+  questions) that all data saved correctly and is properly connected.
+
+MILESTONE REACHED: The full core feature — posting a structured interview
+experience across experiences/rounds/questions tables — works end-to-end
+through the actual CLI, not just isolated test scripts.
+
+STEP 21 — Built browsing: view experiences by company
+- Added get_experiences_by_company(company_name) to experience_service.py:
+    - First real JOIN in the project: joins experiences -> companies and
+      experiences -> users, so company name and user name are pulled in
+      directly instead of separate lookups.
+    - Uses cursor.fetchall() (not fetchone()) since multiple experiences
+      can match one company.
+    - Nested loop: for each experience, queries its rounds; for each
+      round, queries its questions — building a nested Python structure
+      (experiences -> rounds -> questions) by attaching rnd["questions"]
+      dynamically. Not the most query-efficient approach, but clearest
+      to read/debug while learning; can optimize with bigger JOINs later.
+- Added handle_view_experiences() to main.py:
+    - Prompts for a company name, calls get_experiences_by_company().
+    - Prints each experience (role, outcome, anonymous-or-real name),
+      then each round and its questions with detected topic.
+- Updated show_main_menu() and match/case: added option 4 "View
+  Experiences by Company", moved Exit to option 5.
+- Tested: searched "Amazon" and saw the previously posted experience,
+  its rounds, and its tagged questions printed correctly.
+
+STEP 22a — Built topic frequency report (Company Intelligence, part 1)
+- Created services/report_service.py.
+- get_topic_frequency(company_name):
+    - Four-table JOIN chain: questions -> rounds -> experiences ->
+      companies, using the foreign key relationships set up back in
+      schema.py (Step 16).
+    - GROUP BY q.topic collapses all questions sharing the same topic
+      into one row, with COUNT(*) showing how many were grouped together
+      (e.g. instead of 15 separate "SQL" rows, one row: SQL, count=15).
+    - ORDER BY topic_count DESC shows most-asked topics first.
+- Tested: python services/report_service.py -> printed topic counts for
+  "Amazon" (e.g. SQL: 1, OOP: 1), reflecting real posted question data.
+- Noted: report becomes more meaningful as more experiences get posted
+  for a company (more data -> clearer topic patterns).
+
+STEP 22b — Built round type breakdown with percentages (Company Intelligence, part 2)
+- Added get_round_type_breakdown(company_name) to report_service.py.
+- Three-table JOIN: rounds -> experiences -> companies (no questions
+  table needed here, just counting rounds directly).
+- GROUP BY r.round_type + COUNT(*) gives raw counts per round type
+  (same GROUP BY technique as 22a, applied to a different table).
+- Calculated percentages in PYTHON, not SQL, for clarity:
+    - total_rounds = sum(row["type_count"] for row in results) — a
+      generator expression summing counts across all round types.
+    - Guarded against division-by-zero with "if total_rounds == 0: return []".
+    - row["percentage"] = round((count/total)*100, 1) — modifies each
+      result dict IN PLACE, adding a new "percentage" key alongside the
+      existing round_type and type_count keys.
+- Tested: python services/report_service.py -> printed both topic
+  frequency (22a) and round type breakdown with percentages (e.g.
+  "Technical: 2 rounds (100.0%)").
+
+STEP 22c — Wired Company Intelligence Report into main.py
+- Imported get_topic_frequency and get_round_type_breakdown into main.py.
+- Added handle_company_report():
+    - Calls both report functions, combines their output into one
+      readable block — no new database logic, purely presentation
+      (same "main.py orchestrates, services do the work" pattern used
+      throughout the project).
+    - Handles the "no data yet" case with a friendly message instead of
+      a blank/broken output.
+- Updated show_main_menu() and match/case: added option 5 "Company
+  Intelligence Report", moved Exit to option 6.
+- Tested two cases:
+    - Searched "Amazon" -> saw combined report (round type % breakdown +
+      topic frequency).
+    - Searched a nonexistent company ("RandomFakeCo") -> saw friendly
+      "No data found... Be the first to post an experience!" message,
+      no crash.
+
+MILESTONE REACHED: The entire original core feature set is now working
+end-to-end through the CLI:
+  1. Guided experience posting (company/role/outcome -> rounds -> questions,
+     auto-tagged by topic)
+  2. Browsing experiences by company
+  3. Company Intelligence Report (round type breakdown + topic frequency)
+This matches the three pillars described at the very start of the project:
+frictionless sharing, social/interactive layer (partial - likes/comments
+not yet built), and company intelligence.
+
+STEP 23a — Started social layer: add_comment()
+- Created services/social_service.py.
+- add_comment(experience_id, user_id, comment_text):
+    - INSERTs into comments table, linking both experience_id (what's
+      being commented on) and user_id (who commented) — same foreign
+      key pattern from the comments table schema (Step 16).
+    - Follows the same connect/try/insert/commit/except/finally shape
+      used across all service files so far.
+- Tested: python services/social_service.py
+- Output: "✅ Comment added."
+- Verified in Workbench: SELECT * FROM comments; shows the comment
+  correctly linked to experience_id and user_id.
+
+STEP 23b — Display comments when viewing an experience
+- Added get_comments_for_experience(experience_id) to social_service.py:
+    - JOINs comments -> users to get the commenter's real name.
+    - ORDER BY created_at ASC (oldest first) — reads like a conversation
+      thread, opposite of the DESC ordering used for the experience feed
+      (newest-first makes sense there, oldest-first makes sense for
+      replies in one thread).
+- Updated experience_service.py:
+    - Imported get_comments_for_experience from social_service.
+    - Inside get_experiences_by_company(), added
+      exp["comments"] = get_comments_for_experience(exp["experience_id"])
+      right after exp["rounds"] is set — extends the nested structure to
+      experiences -> rounds -> questions AND experiences -> comments.
+- Updated handle_view_experiences() in main.py:
+    - After printing rounds/questions, prints comments (if any) under
+      each experience as "user_name: comment_text".
+- Tested: viewed Amazon's experiences via option 4 -> saw the previously
+  posted comment displayed correctly under the right experience.
+
+STEP 23c — Added liking with toggle behavior
+- Added toggle_like(user_id, experience_id) to social_service.py.
+- First "toggle" function in the project — checks if a like already
+  exists (SELECT), then decides: DELETE if it exists (un-like), INSERT
+  if it doesn't (like). Prevents duplicate likes from the same user on
+  the same experience, and allows un-liking.
+- Used a plain (non-dictionary) cursor here deliberately — existing_like
+  comes back as a tuple, accessed via existing_like[0] (position 0)
+  instead of a dict key. Contrast with dictionary=True used elsewhere:
+  plain tuples are fine for quick internal single-value checks; dict
+  cursors are better when displaying named fields to a user.
+- First DELETE statement in the project: deletes by the like's own
+  unique id (found via the SELECT), not by re-matching user_id +
+  experience_id again.
+- Tested by running social_service.py twice in a row:
+    - 1st run: "👍 Experience liked!" -> row appeared in Workbench
+      (SELECT * FROM likes;)
+    - 2nd run: "👎 Like removed." -> row disappeared from Workbench
+  Confirms toggle works correctly in both directions.
+
+STEP 23d — Show like counts when browsing
+- Added get_like_count(experience_id) to social_service.py:
+    - SELECT COUNT(*) FROM likes WHERE experience_id = %s — no GROUP BY
+      needed since we're counting for ONE specific experience, not
+      summarizing across multiple groups (unlike topic frequency/round
+      breakdown, which needed GROUP BY).
+    - result[0] pulls the count out of the single-row tuple result.
+- Updated experience_service.py:
+    - Imported get_like_count alongside get_comments_for_experience.
+    - Added exp["like_count"] = get_like_count(exp["experience_id"])
+      inside get_experiences_by_company() — extends the nested structure
+      further (experiences now carry rounds, comments, AND like_count).
+- Updated handle_view_experiences() in main.py: experience header line
+  now shows "👍 {like_count} likes" alongside role/outcome/author.
+- Tested: viewed Amazon's experiences via option 4 -> like count
+  displayed correctly in the header.
+
+STEP 23e — Wired like/comment as real menu-driven actions
+- Imported toggle_like and add_comment into main.py.
+- Updated handle_view_experiences() header to show [ID: experience_id]
+  alongside role/outcome/author/likes — needed so the user knows which
+  id to act on next.
+- Added a follow-up interaction at the end of handle_view_experiences():
+    - Guarded with "if current_user is None: return" — only logged-in
+      users can like/comment; browsing itself stays open to everyone.
+    - Prompts for an experience ID (or Enter to skip).
+    - try/except ValueError catches non-numeric input cleanly instead
+      of crashing.
+    - Sub-menu: 1) Like/Unlike (calls toggle_like), 2) Add a comment
+      (calls add_comment) — reusing the exact functions built/tested in
+      23a and 23c, no new database logic in main.py itself.
+- Tested full flow through the actual CLI (not test scripts):
+    - Logged in -> viewed Amazon's experiences -> liked an experience by
+      ID -> saw toggle confirmation -> re-viewed, confirmed like count
+      updated.
+    - Repeated for commenting -> saw "✅ Comment added." -> re-viewed,
+      confirmed comment appeared under the experience.
+
+MILESTONE REACHED: The full social/interactive layer (like, unlike,
+comment) now works end-to-end through the CLI. Combined with Steps 1-22,
+all three original pillars from the initial project idea are now built
+at a basic/functional level:
+  1. Frictionless guided experience sharing — DONE
+  2. Social/interactive layer (like, comment) — DONE (share, follow,
+     verification badges, helpful-vs-like distinction still not built)
+  3. Company Intelligence report — DONE at basic level (no recency
+     weighting, crack rate, or question dedup yet)
+
+STEP 24a — Fixed "how many rounds?" crash risk
+- Identified the single most fragile line in the project: 
+  num_rounds = int(input(...)) would crash the ENTIRE program if the
+  user typed non-numeric input (e.g. "three" instead of 3).
+- Replaced with a while True loop:
+    - try/except ValueError: catches non-numeric input, prints an error,
+      loops back to ask again (same pattern as Step 23e's ID input, but
+      loops instead of giving up).
+    - if num_rounds <= 0: continue — catches a DIFFERENT kind of bad
+      input: technically a valid number, but nonsensical here (0 or
+      negative rounds). continue skips back to re-ask.
+    - break once a genuinely valid, positive number is entered.
+- Tested three cases through the actual CLI: letters ("abc") -> error,
+  re-asked; zero ("0") -> error, re-asked; valid number ("2") ->
+  proceeded normally. No crash in any case.
+
+STEP 24b — Prevented empty/blank inputs with a reusable helper
+- Created utils.py in the root folder — holds general-purpose helper
+  functions not tied to any one feature/service.
+- get_non_empty_input(prompt):
+    - Loops until the user enters something non-blank.
+    - Uses .strip() so "   " (just spaces) also counts as empty, not
+      just a truly empty string.
+    - Returns the cleaned value once valid (different from Step 24a's
+      loop, which validated in place — this helper's job is purely to
+      hand back a clean value for reuse anywhere).
+- Replaced plain input() calls with get_non_empty_input() across:
+    - handle_register(): name, email, password
+    - handle_login(): email, password
+    - handle_post_experience(): company_name, role, outcome, and each
+      round's round_type inside the rounds loop
+- Tested: tried blank input (just Enter) on registration and on posting
+  an experience's company name -> both correctly rejected with an error
+  and re-asked, instead of silently saving empty values.
+
+STEP 24c — Clean duplicate email handling + return values
+- Updated services/auth_service.py imports: added IntegrityError from
+  mysql.connector alongside Error.
+- In register_user(), split the single generic except into two, ORDER
+  MATTERS (Python checks except blocks top to bottom, first match wins):
+    - except IntegrityError: catches MySQL's specific error for
+      duplicate unique values (our email column is UNIQUE) or broken
+      foreign keys -> clean message: "That email is already registered.
+      Try logging in instead."
+    - except Exception as e: remains as a fallback for anything else
+      unexpected, still shows the raw error for genuine edge cases.
+  Pattern to remember: catch specific/expected errors BEFORE generic
+  ones, so common situations get friendly messages while rare ones
+  still get a safety net.
+- register_user() now returns True on success, False on failure —
+  previously returned nothing, so main.py had no way to know if
+  registration actually worked.
+- Updated handle_register() in main.py to use that return value: shows
+  "You can now log in with your new account." only on real success.
+- Tested: registering with an already-used email -> clean friendly
+  message (not raw MySQL error). Registering with a new email -> success
+  message + new follow-up line.
+
+STEP 24d — Final polish pass
+- Reviewed login flow (login_user) for the "email not found" case —
+  already handled cleanly from Step 18, no change needed.
+- Replaced plain input() with get_non_empty_input() for company name in
+  BOTH handle_view_experiences() and handle_company_report() — prevents
+  blank/unhelpful searches.
+- Constrained the "outcome" field to a known set of values, since free
+  text here would hurt future features (like a crack rate calculation)
+  that depend on outcome being consistent:
+    - valid_outcomes = ["Selected", "Rejected", "Pending"] defined once.
+    - Loops using get_non_empty_input() until the entered value matches
+      one of these (case-insensitively, via .capitalize()).
+    - Stores the cleanly-capitalized version regardless of how the user
+      typed it (e.g. "selected" -> stored as "Selected").
+- Tested all three: blank company search in both view/report options ->
+  re-asked; invalid outcome ("asdf") -> re-asked; lowercase valid outcome
+  ("selected") -> accepted and correctly stored as "Selected" in the
+  database (verified via Workbench).
+
+MILESTONE REACHED: Polish arc (Step 24) complete. The app now handles its
+main crash/data-quality risks gracefully: invalid numeric input, blank
+required fields, duplicate email registration, and inconsistent outcome
+values. Core functionality (Steps 1-23) remains fully intact and tested
+throughout.
+
+STEP 25 — Added crack rate to Company Intelligence Report
+- Added get_crack_rate(company_name) to report_service.py.
+- GROUP BY e.outcome across experiences JOIN companies — same GROUP BY
+  pattern used for topic frequency (22a) and round breakdown (22b),
+  applied to the outcome column this time.
+- Since GROUP BY returns counts for EVERY outcome (Selected, Rejected,
+  Pending) together, looped through results to pick out just the
+  "Selected" count specifically.
+- Returns a dict with crack_rate, selected_count, AND total_count —
+  deliberately not just the bare percentage, so the report can show
+  sample size honestly (e.g. "75% (3 of 4 reported)") rather than
+  presenting a potentially misleading number from a tiny sample.
+- Wired into main.py: handle_company_report() now calls get_crack_rate()
+  and displays it at the top of the report, with an explicit note that
+  it's self-reported data and small samples may not reflect true odds.
+- Tested: viewed Amazon's report -> crack rate displayed correctly with
+  sample-size caveat.
+
+STEP 27h — Decision: report_service.py stays as raw SQL (not DAO)
+- Deliberately did NOT refactor report_service.py's aggregation queries
+  (topic frequency, round breakdown, crack rate) into DAO methods.
+- Reasoning: these are read-only, multi-table analytical queries, not
+  simple CRUD operations (insert one row / find one row). Forcing them
+  through a DAO pattern built for CRUD wouldn't add real clarity — it's
+  reasonable and common in real codebases to keep complex reporting SQL
+  separate from standard data-access patterns.
+- This is an intentional architecture decision, not unfinished work —
+  worth being able to explain in an interview: "I kept aggregation
+  queries separate because they don't fit the same access pattern as
+  basic CRUD."
+
+MILESTONE REACHED: Model/DAO refactor (Step 27) is now considered
+COMPLETE for all core CRUD tables (users, companies, experiences,
+rounds, questions, comments, likes). report_service.py intentionally
+left using direct SQL for aggregation/reporting queries.
+
+STEP 27i — Fixed missing anonymous posting prompt
+- Discovered the "Post this anonymously? (yes/no)" prompt was planned
+  earlier but never actually got added to handle_post_experience() in
+  main.py — likely lost during the DAO refactor edits to that file.
+- Added the missing code right before the create_experience() call:
+    - anonymous_input = get_non_empty_input("Post this anonymously? (yes/no): ")
+    - is_anonymous = anonymous_input.strip().lower() == "yes"
+    - Passed is_anonymous=is_anonymous into create_experience().
+- Tested both cases through the CLI:
+    - Answered "yes" -> viewed via option 4 -> header correctly showed
+      "By: Anonymous".
+    - Answered "no" on a second post -> header correctly showed the
+      real user's name.
+- Confirms the full is_anonymous flow now works end-to-end: user input
+  -> create_experience() -> ExperienceDAO.insert() -> stored correctly
+  -> displayed correctly based on the stored value.
+
+Closes out Step 27 (Model/DAO refactor) with all known gaps resolved.
