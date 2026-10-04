@@ -26,15 +26,42 @@ def experiences():
 @app.route("/report")
 def report():
     company = request.args.get("company")
-    topic_data = get_topic_frequency(company)
-    round_data = get_round_type_breakdown(company)
+    topic_data = get_topic_frequency(company) or []
+    round_data = get_round_type_breakdown(company) or []
     crack_data = get_crack_rate(company)
+
+    max_count = max([int(r["topic_count"]) for r in topic_data], default=1) or 1
+    topics = []
+    for r in topic_data:
+        count = int(r["topic_count"])
+        topics.append({
+            "topic": r["topic"],
+            "count": count,
+            "width": round(count / max_count * 100)
+        })
+
+    rounds = []
+    for r in round_data:
+        rounds.append({
+            "round_type": r["round_type"],
+            "count": int(r["type_count"]),
+            "percentage": round(float(r["percentage"]), 1)
+        })
+
+    crack = None
+    if crack_data:
+        crack = {
+            "rate": round(float(crack_data["crack_rate"]), 1),
+            "selected": int(crack_data["selected_count"]),
+            "total": int(crack_data["total_count"])
+        }
+
     return render_template(
         "report.html",
         company=company,
-        topic_data=topic_data,
-        round_data=round_data,
-        crack_data=crack_data
+        topics=topics,
+        rounds=rounds,
+        crack=crack
     )
 
 @app.route("/register", methods=["GET", "POST"])
@@ -153,4 +180,9 @@ def comment(experience_id):
     return redirect(url_for("experiences", company=company))
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    from livereload import Server
+    app.debug = True
+    server = Server(app.wsgi_app)
+    server.watch("static/")
+    server.watch("templates/")
+    server.serve(port=5000)

@@ -3,58 +3,65 @@
 {% block title %}{{ company }} - CrackIT{% endblock %}
 
 {% block content %}
-    <h2>Experiences for {{ company }}</h2>
-    <p><a href="/report?company={{ company }}">View Company Intelligence Report →</a></p>
+    <div class="page-header">
+        <div>
+            <p class="eyebrow">Company</p>
+            <h2>{{ company }}</h2>
+            <p class="sub">{{ experiences|length }} interview experience{{ 's' if experiences|length != 1 }}</p>
+        </div>
+        <a class="btn" href="/report?company={{ company }}">View Intelligence Report</a>
+    </div>
 
     {% for e in experiences %}
-        <div class="experience">
-            <h3>{{ e.role }} | {{ e.outcome }}</h3>
-
-            <p>
-                Posted by:
-                {% if e.is_anonymous %}
-                    Anonymous
-                {% else %}
-                    {{ e.user_name }}
-                {% endif %}
-                | 👍 {{ e.like_count }} likes
-            </p>
-
-            {% if session.user_id %}
-                <form method="post" action="/like/{{ e.experience_id }}">
-                    <input type="hidden" name="company" value="{{ company }}">
-                    <button type="submit">👍 Like / Unlike</button>
-                </form>
-
-                <form method="post" action="/comment/{{ e.experience_id }}">
-                    <input type="hidden" name="company" value="{{ company }}">
-                    <input type="text" name="comment_text" placeholder="Add a comment" required>
-                    <button type="submit">Comment</button>
-                </form>
-            {% else %}
-                <p><a href="/login">Login</a> to like or comment.</p>
-            {% endif %}
+        <article class="experience">
+            <div class="exp-head">
+                <div>
+                    <h3>{{ e.role }}</h3>
+                    <p class="meta">
+                        {% if e.is_anonymous %}Anonymous{% else %}{{ e.user_name }}{% endif %}
+                        · {{ e.like_count }} like{{ 's' if e.like_count != 1 }}
+                    </p>
+                </div>
+                <span class="badge {{ e.outcome|lower }}">{{ e.outcome }}</span>
+            </div>
 
             {% for r in e.rounds %}
-                <h4>Round {{ r.round_number }} ({{ r.round_type }})</h4>
-                <ul>
-                    {% for q in r.questions %}
-                        <li>{{ q.question_text }} <small>[{{ q.topic }}]</small></li>
-                    {% endfor %}
-                </ul>
+                <div class="round">
+                    <h4>Round {{ r.round_number }} <span class="round-type">{{ r.round_type }}</span></h4>
+                    <ul>
+                        {% for q in r.questions %}
+                            <li>{{ q.question_text }} <small>{{ q.topic }}</small></li>
+                        {% endfor %}
+                    </ul>
+                </div>
             {% endfor %}
 
             {% if e.comments %}
-                <h4>Comments</h4>
-                <ul>
+                <div class="comments">
+                    <h4>Comments</h4>
                     {% for c in e.comments %}
-                        <li><b>{{ c.user_name }}:</b> {{ c.comment_text }}</li>
+                        <p><b>{{ c.user_name }}</b> {{ c.comment_text }}</p>
                     {% endfor %}
-                </ul>
+                </div>
             {% endif %}
-        </div>
-        <hr>
+
+            <div class="actions">
+                {% if session.user_id %}
+                    <form method="post" action="/like/{{ e.experience_id }}">
+                        <input type="hidden" name="company" value="{{ company }}">
+                        <button type="submit" class="btn-ghost">👍 {{ e.like_count }}</button>
+                    </form>
+                    <form method="post" action="/comment/{{ e.experience_id }}" class="comment-form">
+                        <input type="hidden" name="company" value="{{ company }}">
+                        <input type="text" name="comment_text" placeholder="Write a comment..." required>
+                        <button type="submit">Comment</button>
+                    </form>
+                {% else %}
+                    <p class="meta"><a href="/login">Log in</a> to like or comment.</p>
+                {% endif %}
+            </div>
+        </article>
     {% else %}
-        <p>No experiences found for {{ company }} yet.</p>
+        <div class="empty">No experiences found for {{ company }} yet.</div>
     {% endfor %}
 {% endblock %}

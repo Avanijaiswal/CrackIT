@@ -2,29 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}CrackIT{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <header>
-        <h1><a href="/">CrackIT</a></h1>
-        
-        {% if session.user_name %}
-            <p>
-                Hi, {{ session.user_name }} | 
-                <a href="/post">Post Experience</a>
-                <a href="/logout">Logout</a>
-            </p>
-        {% else %}
-            <p>
-                <a href="/login">Login</a> | 
-                <a href="/register">Register</a>
-            </p>
-        {% endif %}
-        
-        <hr>
-    </header>
+    <aside class="sidebar">
+        <a href="/" class="logo">
+            <span class="logo-mark">C</span>
+            <span>Crack<b>IT</b></span>
+        </a>
 
-    {% block content %}{% endblock %}
+        <p class="nav-label">Menu</p>
+        <nav>
+            <a href="/" class="{% if request.path in ['/', '/experiences', '/report'] %}active{% endif %}">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                Explore
+            </a>
+            {% if session.user_id %}
+            <a href="/post" class="{% if request.path.startswith('/post') %}active{% endif %}">
+                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                Post Experience
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-footer">
+            {% if session.user_name %}
+                <div class="user">
+                    <div class="avatar">{{ session.user_name[0]|upper }}</div>
+                    <div>
+                        <p class="user-name">{{ session.user_name }}</p>
+                        <a href="/logout" class="logout">Log out</a>
+                    </div>
+                </div>
+            {% else %}
+                <a href="/login" class="btn btn-block">Log in</a>
+                <a href="/register" class="btn btn-ghost btn-block">Create account</a>
+            {% endif %}
+        </div>
+    </aside>
+
+    <main class="content">
+        {% block content %}{% endblock %}
+    </main>
 </body>
 </html>

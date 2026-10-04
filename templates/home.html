@@ -3,10 +3,14 @@
 {% block title %}CrackIT - Home{% endblock %}
 
 {% block content %}
-    <h2>Find interview experiences</h2>
-    <form action="/experiences" method="get">
-        <input type="text" name="company" placeholder="Company name, e.g. TCS" required>
-        <button type="submit">Search</button>
-    </form>
+    <section class="hero">
+        <p class="eyebrow">Interview intelligence</p>
+        <h1>Know what to expect before you walk in.</h1>
+        <p class="sub">Real interview experiences, round breakdowns and topic trends for any company.</p>
 
+        <form action="/experiences" method="get" class="search-box">
+            <input type="text" name="company" placeholder="Search a company, e.g. TCS, Amazon" required>
+            <button type="submit">Search</button>
+        </form>
+    </section>
 {% endblock %}
