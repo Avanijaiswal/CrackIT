@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company }} Report - CrackIT{% endblock %}
+
+{% block content %}
+    <h2>Company Intelligence Report: {{ company }}</h2>
+
+    {% if not topic_data and not round_data %}
+        <p>No data found for {{ company }} yet. Be the first to post an experience.</p>
+    {% else %}
+
+        {% if crack_data %}
+            <h3>Crack Rate</h3>
+            <p>
+                {{ crack_data.crack_rate }}%
+                ({{ crack_data.selected_count }} of {{ crack_data.total_count }} reported as Selected)
+            </p>
+        {% endif %}
+
+        <h3>Round Type Breakdown</h3>
+        {% if round_data %}
+            <ul>
+                {% for row in round_data %}
+                    <li>{{ row.round_type }}: {{ row.type_count }} rounds ({{ row.percentage }}%)</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No round data available yet.</p>
+        {% endif %}
+
+        <h3>Topics Asked (Most to Least Frequent)</h3>
+        {% if topic_data %}
+            <ul>
+                {% for row in topic_data %}
+                    <li>{{ row.topic }}: {{ row.topic_count }} question(s)</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No question data available yet.</p>
+        {% endif %}
+
+    {% endif %}
+
+    <p><a href="/experiences?company={{ company }}">← Back to experiences</a></p>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Add Round - CrackIT{% endblock %}
+
+{% block content %}
+    <h2>Round {{ round_number }}</h2>
+    <form method="post">
+        <select name="round_type" required>
+            <option value="Technical">Technical</option>
+            <option value="HR">HR</option>
+            <option value="Management">Management</option>
+            <option value="GD">GD</option>
+            <option value="Aptitude">Aptitude</option>
+        </select>
+
+        <textarea name="questions" rows="8" cols="50"
+                  placeholder="One question per line"></textarea>
+
+        <button type="submit" name="action" value="another">Save & add another round</button>
+        <button type="submit" name="action" value="finish">Save & finish</button>
+    </form>
+{% endblock %}

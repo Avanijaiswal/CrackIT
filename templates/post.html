@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Post Experience - CrackIT{% endblock %}
+
+{% block content %}
+    <h2>Post an Interview Experience</h2>
+    <form method="post">
+        <input type="text" name="company_name" placeholder="Company name" required>
+        <input type="text" name="role" placeholder="Role applied for" required>
+
+        <select name="outcome" required>
+            <option value="Selected">Selected</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Pending">Pending</option>
+        </select>
+
+        <label>
+            <input type="checkbox" name="anonymous"> Post anonymously
+        </label>
+
+        <button type="submit">Next: add rounds</button>
+    </form>
+{% endblock %}
