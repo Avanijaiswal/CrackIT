@@ -337,3 +337,25 @@ label { color: var(--muted); display: flex; gap: 8px; align-items: center; }
     .search-box { flex-direction: column; }
     .search-box button { padding: 12px; }
 }
+
+/* ---------- Leaderboard ---------- */
+.lb-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 8px;
+    border-bottom: 1px solid var(--border);
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-rank { width: 28px; text-align: center; color: var(--muted); font-weight: 600; }
+.lb-row.top .lb-rank { color: var(--accent); }
+.lb-avatar {
+    width: 36px; height: 36px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    font-weight: 600;
+}
+.lb-name { flex: 1; font-weight: 500; }
+.lb-score { color: var(--accent); font-weight: 600; }

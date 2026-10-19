@@ -1,8 +1,11 @@
 from dao.experience_dao import ExperienceDAO
+from dao.user_dao import UserDAO
 from services.company_service import get_or_create_company
 from dao.round_dao import RoundDAO
 from dao.question_dao import QuestionDAO
 from services.social_service import get_comments_for_experience, get_like_count
+
+POST_POINTS = 10
 
 
 def create_experience(user_id, company_name, role, outcome, is_anonymous=False):
@@ -19,8 +22,11 @@ def create_experience(user_id, company_name, role, outcome, is_anonymous=False):
         print("Could not create experience.")
         return None
 
+    UserDAO().add_points(user_id, POST_POINTS)
+
     print(f"Experience created (id: {experience_id}) for company '{company_name}'.")
     return experience_id
+
 
 def get_experiences_by_company(company_name):
     experience_dao = ExperienceDAO()
@@ -58,11 +64,12 @@ def get_experiences_by_company(company_name):
 
     return results
 
+
 if __name__ == "__main__":
     create_experience(
-        user_id = 1,
-        company_name = "Amazon",
-        role = "SDE-1",
-        outcome = "Selected",
-        is_anonymous = False
+        user_id=1,
+        company_name="Amazon",
+        role="SDE-1",
+        outcome="Selected",
+        is_anonymous=False
     )

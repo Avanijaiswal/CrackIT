@@ -7,6 +7,7 @@ from services.auth_service import register_user, login_user
 from services.round_service import add_round
 from services.question_service import add_question
 from services.social_service import toggle_like, add_comment
+from services.user_service import get_leaderboard
 
 load_dotenv()
 
@@ -178,6 +179,11 @@ def comment(experience_id):
             comment_text=comment_text
         )
     return redirect(url_for("experiences", company=company))
+
+@app.route("/leaderboard")
+def leaderboard():
+    top_users = get_leaderboard()
+    return render_template("leaderboard.html", top_users=top_users)
 
 if __name__ == "__main__":
     from livereload import Server
