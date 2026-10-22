@@ -4,54 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}CrackIT{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e8590c'/%3E%3Ctext x='16' y='23' font-size='19' font-weight='700' text-anchor='middle' fill='white' font-family='Georgia'%3EC%3C/text%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <aside class="sidebar">
-        <a href="/" class="logo">
-            <span class="logo-mark">C</span>
-            <span>Crack<b>IT</b></span>
-        </a>
+    <header class="topbar">
+        <a href="/" class="logo">Crack<span>IT</span></a>
 
-        <p class="nav-label">Menu</p>
-        <nav>
-            <a href="/" class="{% if request.path in ['/', '/experiences', '/report'] %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-                Explore
-            </a>
-            <a href="/leaderboard" class="{% if request.path == '/leaderboard' %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><path d="M6 20V10M12 20V4M18 20v-7"/></svg>
-                Leaderboard
-            </a>
+        <nav class="nav">
+            <a href="/" class="{% if request.path in ['/', '/experiences', '/report'] %}active{% endif %}">Explore</a>
+            <a href="/leaderboard" class="{% if request.path == '/leaderboard' %}active{% endif %}">Leaderboard</a>
             {% if session.user_id %}
-            <a href="/post" class="{% if request.path.startswith('/post') %}active{% endif %}">
-                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                Post Experience
-            </a>
+                <a href="/post" class="{% if request.path.startswith('/post') %}active{% endif %}">Share experience</a>
             {% endif %}
         </nav>
 
-        <div class="sidebar-footer">
+        <div class="nav-right">
             {% if session.user_name %}
-                <div class="user">
-                    <div class="avatar">{{ session.user_name[0]|upper }}</div>
-                    <div>
-                        <p class="user-name">{{ session.user_name }}</p>
-                        <a href="/logout" class="logout">Log out</a>
-                    </div>
-                </div>
+                <span class="user-chip">
+                    <span class="avatar">{{ session.user_name[0]|upper }}</span>
+                    <span class="hello">{{ session.user_name }}</span>
+                </span>
+                <a href="/logout" class="btn btn-ghost btn-sm">Log out</a>
             {% else %}
-                <a href="/login" class="btn btn-block">Log in</a>
-                <a href="/register" class="btn btn-ghost btn-block">Create account</a>
+                <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+                <a href="/register" class="btn btn-sm">Sign up</a>
             {% endif %}
         </div>
-    </aside>
+    </header>
 
     <main class="content">
         {% block content %}{% endblock %}
     </main>
+
+    <footer class="site-footer">
+        <span>Crack<b>IT</b> &middot; interview experiences, shared by candidates.</span>
+        <span>Built with Flask and MySQL</span>
+    </footer>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

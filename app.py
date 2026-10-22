@@ -74,8 +74,8 @@ def register():
         success = register_user(name, email, password)
         if success:
             return redirect("/login")
-        return "Registration failed (maybe that email is already used)."
-    return render_template("register.html")
+        return render_template("register.html", error="Registration failed. That email may already be in use.")
+    return render_template("register.html", error=None)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():

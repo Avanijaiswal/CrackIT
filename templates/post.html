@@ -1,23 +1,41 @@
 {% extends "base.html" %}
 
-{% block title %}Post Experience - CrackIT{% endblock %}
+{% block title %}Share an experience - CrackIT{% endblock %}
 
 {% block content %}
-    <h2>Post an Interview Experience</h2>
-    <form method="post">
-        <input type="text" name="company_name" placeholder="Company name" required>
-        <input type="text" name="role" placeholder="Role applied for" required>
+    <div class="page-header">
+        <div>
+            <p class="step">Step 1 of 2</p>
+            <h2>Share your interview experience</h2>
+            <p class="sub">Start with the basics. You'll add the rounds and questions on the next page.</p>
+        </div>
+    </div>
 
-        <select name="outcome" required>
-            <option value="Selected">Selected</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Pending">Pending</option>
-        </select>
+    <div class="form-card wide">
+        <form method="post">
+            <div class="field">
+                <label for="company_name">Company</label>
+                <input type="text" id="company_name" name="company_name" required>
+            </div>
+            <div class="field">
+                <label for="role">Role you applied for</label>
+                <input type="text" id="role" name="role" required>
+            </div>
+            <div class="field">
+                <label for="outcome">How did it go?</label>
+                <select id="outcome" name="outcome" required>
+                    <option value="Selected">Selected</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Pending">Still waiting</option>
+                </select>
+            </div>
 
-        <label>
-            <input type="checkbox" name="anonymous"> Post anonymously
-        </label>
+            <label class="check">
+                <input type="checkbox" name="anonymous">
+                <span>Post anonymously <small>Your name won't be shown on this experience.</small></span>
+            </label>
 
-        <button type="submit">Next: add rounds</button>
-    </form>
+            <button type="submit">Continue to rounds</button>
+        </form>
+    </div>
 {% endblock %}

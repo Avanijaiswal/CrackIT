@@ -5,56 +5,76 @@
 {% block content %}
     <div class="page-header">
         <div>
-            <p class="eyebrow">Company</p>
+            <p class="kicker">Company</p>
             <h2>{{ company }}</h2>
-            <p class="sub">{{ experiences|length }} interview experience{{ 's' if experiences|length != 1 }}</p>
+            <p class="sub">{{ experiences|length }} experience{{ 's' if experiences|length != 1 }} shared</p>
         </div>
-        <a class="btn" href="/report?company={{ company }}">View Intelligence Report</a>
+        <a class="btn" href="/report?company={{ company }}">View company report</a>
     </div>
 
+    {% if experiences %}
+        <div class="filters">
+            <button type="button" class="chip active" data-filter="all">All ({{ experiences|length }})</button>
+            <button type="button" class="chip" data-filter="selected">Selected ({{ experiences|selectattr('outcome', 'equalto', 'Selected')|list|length }})</button>
+            <button type="button" class="chip" data-filter="rejected">Rejected ({{ experiences|selectattr('outcome', 'equalto', 'Rejected')|list|length }})</button>
+            <button type="button" class="chip" data-filter="pending">Pending ({{ experiences|selectattr('outcome', 'equalto', 'Pending')|list|length }})</button>
+        </div>
+    {% endif %}
+
     {% for e in experiences %}
-        <article class="experience">
+        {% set tints = ['a', 'b', 'c', 'd', 'e'] %}
+        {% set anon = e.is_anonymous or not e.user_name %}
+        {% set poster = 'Anonymous' if anon else e.user_name %}
+        {% set comments = e.comments or [] %}
+
+        <article class="experience {{ e.outcome|lower }}" data-outcome="{{ e.outcome|lower }}">
             <div class="exp-head">
-                <div>
-                    <h3>{{ e.role }}</h3>
-                    <p class="meta">
-                        {% if e.is_anonymous %}Anonymous{% else %}{{ e.user_name }}{% endif %}
-                        · {{ e.like_count }} like{{ 's' if e.like_count != 1 }}
-                    </p>
+                <div class="exp-who">
+                    <div class="exp-avatar av-{{ tints[loop.index0 % 5] }}">{{ '?' if anon else poster[0]|upper }}</div>
+                    <div>
+                        <h3>{{ e.role }}</h3>
+                        <p class="meta">
+                            {{ poster }} &middot;
+                            {{ e.rounds|length }} round{{ 's' if e.rounds|length != 1 }} &middot;
+                            {{ e.like_count }} like{{ 's' if e.like_count != 1 }}
+                        </p>
+                    </div>
                 </div>
-                <span class="badge {{ e.outcome|lower }}">{{ e.outcome }}</span>
+                <span class="outcome {{ e.outcome|lower }}">{{ e.outcome }}</span>
             </div>
 
             {% for r in e.rounds %}
                 <div class="round">
-                    <h4>Round {{ r.round_number }} <span class="round-type">{{ r.round_type }}</span></h4>
+                    <h4>Round {{ r.round_number }} <span class="round-type t-{{ r.round_type|lower }}">{{ r.round_type }}</span></h4>
                     <ul>
                         {% for q in r.questions %}
                             <li>{{ q.question_text }} <small>{{ q.topic }}</small></li>
+                        {% else %}
+                            <li class="meta">No questions listed.</li>
                         {% endfor %}
                     </ul>
                 </div>
             {% endfor %}
 
-            {% if e.comments %}
-                <div class="comments">
-                    <h4>Comments</h4>
-                    {% for c in e.comments %}
+            {% if comments %}
+                <details class="comments">
+                    <summary>Comments ({{ comments|length }})</summary>
+                    {% for c in comments %}
                         <p><b>{{ c.user_name }}</b> {{ c.comment_text }}</p>
                     {% endfor %}
-                </div>
+                </details>
             {% endif %}
 
             <div class="actions">
                 {% if session.user_id %}
                     <form method="post" action="/like/{{ e.experience_id }}">
                         <input type="hidden" name="company" value="{{ company }}">
-                        <button type="submit" class="btn-ghost">👍 {{ e.like_count }}</button>
+                        <button type="submit" class="btn-ghost btn-sm">Like ({{ e.like_count }})</button>
                     </form>
                     <form method="post" action="/comment/{{ e.experience_id }}" class="comment-form">
                         <input type="hidden" name="company" value="{{ company }}">
-                        <input type="text" name="comment_text" placeholder="Write a comment..." required>
-                        <button type="submit">Comment</button>
+                        <input type="text" name="comment_text" placeholder="Add a comment" required>
+                        <button type="submit" class="btn-sm">Post</button>
                     </form>
                 {% else %}
                     <p class="meta"><a href="/login">Log in</a> to like or comment.</p>
@@ -62,6 +82,9 @@
             </div>
         </article>
     {% else %}
-        <div class="empty">No experiences found for {{ company }} yet.</div>
+        <div class="empty">
+            <p>Nobody has posted an experience for <b>{{ company }}</b> yet.</p>
+            <p><a href="/post">Be the first to share one</a></p>
+        </div>
     {% endfor %}
 {% endblock %}

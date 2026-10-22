@@ -5,17 +5,17 @@
 {% block content %}
     <div class="page-header">
         <div>
-            <p class="eyebrow">Community</p>
-            <h2>Top Contributors</h2>
-            <p class="sub">+10 for posting an experience, +2 for each like you receive.</p>
+            <p class="kicker">Community</p>
+            <h2>Leaderboard</h2>
+            <p class="sub">10 points for sharing an experience, 2 points for every like you get.</p>
         </div>
     </div>
 
     {% if top_users %}
-        <section class="panel">
+        <section class="panel lb">
             {% for u in top_users %}
-                <div class="lb-row {% if loop.index <= 3 %}top{% endif %}">
-                    <span class="lb-rank">{{ loop.index }}</span>
+                <div class="lb-row">
+                    <span class="lb-rank {% if loop.index <= 3 %}top r{{ loop.index }}{% endif %}">{{ loop.index }}</span>
                     <span class="lb-avatar">{{ u.name[0]|upper }}</span>
                     <span class="lb-name">{{ u.name }}</span>
                     <span class="lb-score">{{ u.contributor_score }} pts</span>
@@ -23,6 +23,8 @@
             {% endfor %}
         </section>
     {% else %}
-        <div class="empty">No contributors yet. Post an experience to get on the board.</div>
+        <div class="empty">
+            <p>No one is on the board yet. Share an experience to be the first.</p>
+        </div>
     {% endif %}
 {% endblock %}

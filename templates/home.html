@@ -1,16 +1,101 @@
 {% extends "base.html" %}
 
-{% block title %}CrackIT - Home{% endblock %}
+{% block title %}CrackIT - Interview experiences{% endblock %}
 
 {% block content %}
     <section class="hero">
-        <p class="eyebrow">Interview intelligence</p>
-        <h1>Know what to expect before you walk in.</h1>
-        <p class="sub">Real interview experiences, round breakdowns and topic trends for any company.</p>
+        <div class="hero-text">
+            <p class="kicker">Interview experiences from real candidates</p>
+            <h1>See what people were asked <span class="underline">before</span> your interview.</h1>
+            <p class="lead">Search a company and read how its interviews went, round by round, with the questions and the outcome.</p>
 
-        <form action="/experiences" method="get" class="search-box">
-            <input type="text" name="company" placeholder="Search a company, e.g. TCS, Amazon" required>
-            <button type="submit">Search</button>
-        </form>
+            <form action="/experiences" method="get" class="search-box">
+                <input type="text" name="company" placeholder="Search a company, e.g. TCS" required>
+                <button type="submit">Search</button>
+            </form>
+
+            <p class="hero-note">
+                {% if session.user_id %}
+                    Interviewed somewhere recently? <a href="/post">Share your experience</a>.
+                {% else %}
+                    Interviewed somewhere recently? <a href="/register">Create an account</a> and share yours.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="hero-preview" aria-hidden="true">
+            <div class="preview-back"></div>
+            <div class="preview-front">
+                <div class="pc-head">
+                    <div>
+                        <strong>Software Engineer</strong>
+                        <span class="meta">Example Corp</span>
+                    </div>
+                    <span class="outcome selected">Selected</span>
+                </div>
+
+                <div class="pc-round">
+                    <p><b>Round 1</b> <span class="round-type t-technical">Technical</span></p>
+                    <ul>
+                        <li>Explain the four pillars of OOP <small>OOP</small></li>
+                        <li>Write a query to find duplicate rows <small>SQL</small></li>
+                    </ul>
+                </div>
+                <div class="pc-round">
+                    <p><b>Round 2</b> <span class="round-type t-hr">HR</span></p>
+                    <ul>
+                        <li>Why do you want to join us?</li>
+                    </ul>
+                </div>
+                <p class="pc-foot">Example only</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="find-row">
+        <span>You'll find</span>
+        <span class="round-type t-technical">Technical</span>
+        <span class="round-type t-hr">HR</span>
+        <span class="round-type t-gd">GD</span>
+        <span class="round-type t-aptitude">Aptitude</span>
+        <span class="round-type t-management">Management</span>
+        <span>rounds, with the questions asked in each.</span>
+    </section>
+
+    <section class="how">
+        <h2>How it works</h2>
+        <div class="how-grid">
+            <div class="how-card">
+                <span class="how-num">01</span>
+                <h3>Search a company</h3>
+                <p>You get every experience posted for it, with the rounds and questions.</p>
+            </div>
+            <div class="how-card">
+                <span class="how-num">02</span>
+                <h3>Open the report</h3>
+                <p>See how many people got selected, which round types come up and the topics asked most.</p>
+            </div>
+            <div class="how-card">
+                <span class="how-num">03</span>
+                <h3>Add your own</h3>
+                <p>Share what you were asked and earn points on the leaderboard.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        {% if session.user_id %}
+            <div>
+                <h3>Had an interview recently?</h3>
+                <p>Help the next candidate by sharing what you were asked.</p>
+            </div>
+            <a class="btn btn-light" href="/post">Share an experience</a>
+        {% else %}
+            <div>
+                <h3>Been through an interview lately?</h3>
+                <p>Create a free account to share your experience, like and comment.</p>
+            </div>
+            <a class="btn btn-light" href="/register">Create an account</a>
+        {% endif %}
     </section>
 {% endblock %}

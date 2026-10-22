@@ -3,20 +3,37 @@
 {% block title %}Add Round - CrackIT{% endblock %}
 
 {% block content %}
-    <h2>Round {{ round_number }}</h2>
-    <form method="post">
-        <select name="round_type" required>
-            <option value="Technical">Technical</option>
-            <option value="HR">HR</option>
-            <option value="Management">Management</option>
-            <option value="GD">GD</option>
-            <option value="Aptitude">Aptitude</option>
-        </select>
+    <div class="page-header">
+        <div>
+            <p class="step">Step 2 of 2</p>
+            <h2>Round {{ round_number }}</h2>
+            <p class="sub">What kind of round was it, and what do you remember being asked?</p>
+        </div>
+    </div>
 
-        <textarea name="questions" rows="8" cols="50"
-                  placeholder="One question per line"></textarea>
+    <div class="form-card wide">
+        <form method="post">
+            <div class="field">
+                <label for="round_type">Round type</label>
+                <select id="round_type" name="round_type" required>
+                    <option value="Technical">Technical</option>
+                    <option value="HR">HR</option>
+                    <option value="Management">Management</option>
+                    <option value="GD">GD</option>
+                    <option value="Aptitude">Aptitude</option>
+                </select>
+            </div>
 
-        <button type="submit" name="action" value="another">Save & add another round</button>
-        <button type="submit" name="action" value="finish">Save & finish</button>
-    </form>
+            <div class="field">
+                <label for="questions">Questions</label>
+                <textarea id="questions" name="questions" rows="8" placeholder="One question per line"></textarea>
+                <span class="hint">Write one question per line. Topics are tagged automatically.</span>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" name="action" value="another" class="btn-ghost">Save and add another round</button>
+                <button type="submit" name="action" value="finish">Save and finish</button>
+            </div>
+        </form>
+    </div>
 {% endblock %}
