@@ -11,24 +11,34 @@ def hash_password(plain_password):
 
 
 def register_user(name, email, plain_password):
-    
-    hashed_pw = hash_password(plain_password)
-    user_dao = UserDAO()
-
     try:
-        user_id = user_dao.insert(name, email, hashed_pw)
-        if user_id is None:
-            print("Could not register user — no database connection.")
+        name = (name or "").strip()
+        email = (email or "").strip().lower()
+
+        if not name or not email or not plain_password:
+            print("Registration failed: All fields are required.")
             return False
+
+        # Hash password and prepare database access
+        hashed_pw = hash_password(plain_password)
+        user_dao = UserDAO()
+
+        user_id = user_dao.insert(name, email, hashed_pw)
+
+        if user_id is None:
+            print("Registration failed: Could not connect to the database.")
+            return False
+
         print(f"User '{name}' registered successfully!")
         return True
-    except IntegrityError:
-        print("That email is already registered. Try logging in instead.")
-        return False
-    except Exception as e:
-        print(f"Registration failed: {e}")
+
+    except IntegrityError as e:
+        print(f"Database integrity error: {e}")
         return False
 
+    except Exception as e:
+        print(f"Registration failed: {type(e).__name__}: {e}")
+        return False
 
 def login_user(email, plain_password):
     
