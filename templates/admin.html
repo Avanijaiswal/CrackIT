@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - CrackIT{% endblock %}
+
+{% block content %}
+    {% macro del(kind, item_id, msg) %}
+        <form method="post" action="/admin/delete/{{ kind }}/{{ item_id }}" onsubmit="return confirm('{{ msg }}')">
+            <button type="submit" class="btn-danger btn-sm">Delete</button>
+        </form>
+    {% endmacro %}
+
+    <div class="page-header">
+        <div>
+            <p class="kicker">Admin</p>
+            <h2>Manage CrackIT</h2>
+        </div>
+    </div>
+
+    <div class="admin-tabs">
+        <a href="/admin" class="{{ 'active' if section == 'overview' }}">Overview</a>
+        {% for s in ['experiences', 'questions', 'comments', 'likes', 'users', 'companies'] %}
+            <a href="/admin/{{ s }}" class="{{ 'active' if section == s }}">{{ s|capitalize }}</a>
+        {% endfor %}
+    </div>
+
+    {% if section == 'overview' %}
+        <div class="stats">
+            {% for name in ['experiences', 'questions', 'comments', 'likes', 'users', 'companies'] %}
+                <a class="stat" href="/admin/{{ name }}">
+                    <p class="stat-value">{{ counts[name] }}</p>
+                    <p class="stat-label">{{ name|capitalize }}</p>
+                </a>
+            {% endfor %}
+        </div>
+
+        <section class="panel">
+            <h3>Points</h3>
+            <p class="meta" style="margin-bottom: 14px;">Points are 10 per experience posted plus 2 per like received from someone else. They update after deletes, and this button rebuilds them for everyone from the current data.</p>
+            <form method="post" action="/admin/recalculate">
+                <button type="submit" class="btn-ghost">Recalculate points</button>
+            </form>
+        </section>
+
+    {% elif section == 'experiences' %}
+        <section class="panel">
+            <h3>Experiences ({{ rows|length }})</h3>
+            {% if rows %}
+                <div class="table-wrap"><table class="table">
+                    <thead><tr><th>ID</th><th>Company</th><th>Role</th><th>Outcome</th><th>Posted by</th><th></th></tr></thead>
+                    <tbody>
+                        {% for e in rows %}
+                            <tr>
+                                <td>{{ e.id }}</td>
+                                <td>{{ e.company }}</td>
+                                <td>{{ e.role }}</td>
+                                <td><span class="outcome {{ e.outcome|lower }}">{{ e.outcome }}</span></td>
+                                <td>{{ e.user_name }}{% if e.is_anonymous %} <span class="meta">(anonymous)</span>{% endif %}</td>
+                                <td>{{ del('experience', e.id, 'Delete this experience and everything attached to it?') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table></div>
+            {% else %}<p class="meta">Nothing here.</p>{% endif %}
+        </section>
+
+    {% elif section == 'questions' %}
+        <section class="panel">
+            <h3>Questions ({{ rows|length }})</h3>
+            {% if rows %}
+                <div class="table-wrap"><table class="table">
+                    <thead><tr><th>ID</th><th>Company</th><th>Round</th><th>Question</th><th>Topic</th><th></th></tr></thead>
+                    <tbody>
+                        {% for q in rows %}
+                            <tr>
+                                <td>{{ q.id }}</td>
+                                <td>{{ q.company }}</td>
+                                <td>{{ q.round_number }} <span class="meta">({{ q.round_type }})</span></td>
+                                <td class="cell-text">{{ q.question_text }}</td>
+                                <td>{{ q.topic }}</td>
+                                <td>{{ del('question', q.id, 'Delete this question?') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table></div>
+            {% else %}<p class="meta">Nothing here.</p>{% endif %}
+        </section>
+
+    {% elif section == 'comments' %}
+        <section class="panel">
+            <h3>Comments ({{ rows|length }})</h3>
+            {% if rows %}
+                <div class="table-wrap"><table class="table">
+                    <thead><tr><th>ID</th><th>On</th><th>By</th><th>Comment</th><th></th></tr></thead>
+                    <tbody>
+                        {% for c in rows %}
+                            <tr>
+                                <td>{{ c.id }}</td>
+                                <td>{{ c.company }} <span class="meta">({{ c.role }})</span></td>
+                                <td>{{ c.user_name }}</td>
+                                <td class="cell-text">{{ c.comment_text }}</td>
+                                <td>{{ del('comment', c.id, 'Delete this comment?') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table></div>
+            {% else %}<p class="meta">Nothing here.</p>{% endif %}
+        </section>
+
+    {% elif section == 'likes' %}
+        <section class="panel">
+            <h3>Likes ({{ rows|length }})</h3>
+            {% if rows %}
+                <div class="table-wrap"><table class="table">
+                    <thead><tr><th>ID</th><th>Liked by</th><th>Experience</th><th></th></tr></thead>
+                    <tbody>
+                        {% for l in rows %}
+                            <tr>
+                                <td>{{ l.id }}</td>
+                                <td>{{ l.user_name }}</td>
+                                <td>{{ l.company }} <span class="meta">({{ l.role }})</span></td>
+                                <td>{{ del('like', l.id, 'Remove this like?') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table></div>
+            {% else %}<p class="meta">Nothing here.</p>{% endif %}
+        </section>
+
+    {% elif section == 'users' %}
+        <section class="panel">
+            <h3>Users ({{ rows|length }})</h3>
+            <div class="table-wrap"><table class="table">
+                <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Points</th><th>Posts</th><th>Role</th><th></th></tr></thead>
+                <tbody>
+                    {% for u in rows %}
+                        <tr>
+                            <td>{{ u.id }}</td>
+                            <td>{{ u.name }}</td>
+                            <td>{{ u.email }}</td>
+                            <td>{{ u.contributor_score }}</td>
+                            <td>{{ u.exp_count }}</td>
+                            <td>
+                                {% if u.is_admin %}<span class="round-type t-management">Admin</span>{% else %}<span class="meta">User</span>{% endif %}
+                            </td>
+                            <td>
+                                <div class="row-actions">
+                                    {% if u.id != session.user_id %}
+                                        <form method="post" action="/admin/user/{{ u.id }}/role">
+                                            <input type="hidden" name="make_admin" value="{{ 0 if u.is_admin else 1 }}">
+                                            <button type="submit" class="btn-ghost btn-sm">{{ 'Remove admin' if u.is_admin else 'Make admin' }}</button>
+                                        </form>
+                                        {% if not u.is_admin %}
+                                            {{ del('user', u.id, 'Delete this user and ALL their posts, likes and comments? This cannot be undone.') }}
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table></div>
+        </section>
+
+    {% elif section == 'companies' %}
+        <section class="panel">
+            <h3>Companies ({{ rows|length }})</h3>
+            {% if rows %}
+                <div class="table-wrap"><table class="table">
+                    <thead><tr><th>ID</th><th>Name</th><th>Experiences</th><th></th></tr></thead>
+                    <tbody>
+                        {% for c in rows %}
+                            <tr>
+                                <td>{{ c.id }}</td>
+                                <td>{{ c.name }}</td>
+                                <td>{{ c.exp_count }}</td>
+                                <td>{{ del('company', c.id, 'Delete this company and ALL its experiences? This cannot be undone.') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table></div>
+            {% else %}<p class="meta">Nothing here.</p>{% endif %}
+        </section>
+    {% endif %}
+{% endblock %}

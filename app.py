@@ -1,28 +1,46 @@
 import os
+from functools import wraps
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, session, redirect, url_for
-from services.experience_service import create_experience, get_experiences_by_company
-from services.report_service import  get_topic_frequency, get_round_type_breakdown, get_crack_rate
-from services.auth_service import register_user, login_user
-from services.round_service import add_round
-from services.question_service import add_question
-from services.social_service import toggle_like, add_comment
-from services.user_service import get_leaderboard
+from flask import Flask, render_template, request, session, redirect, url_for, abort
 
 load_dotenv()
+
+from services.auth_service import register_user, login_user
+from services.experience_service import create_experience, get_experiences_by_company
+from services.round_service import add_round
+from services.question_service import add_question
+from services.report_service import get_topic_frequency, get_round_type_breakdown, get_crack_rate
+from services.social_service import toggle_like, add_comment
+from services.user_service import get_leaderboard
+from dao.user_dao import UserDAO
+from dao.admin_dao import AdminDAO
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
+
+def admin_required(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect("/login")
+        if not UserDAO().is_admin(session["user_id"]):
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapper
+
+
 @app.route("/")
 def home():
     return render_template("home.html")
+
 
 @app.route("/experiences")
 def experiences():
     company = request.args.get("company")
     results = get_experiences_by_company(company)
     return render_template("experiences.html", company=company, experiences=results)
+
 
 @app.route("/report")
 def report():
@@ -65,6 +83,7 @@ def report():
         crack=crack
     )
 
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -77,6 +96,7 @@ def register():
         return render_template("register.html", error="Registration failed. That email may already be in use.")
     return render_template("register.html", error=None)
 
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -86,6 +106,7 @@ def login():
         if user is not None:
             session["user_id"] = user.id
             session["user_name"] = user.name
+            session["is_admin"] = UserDAO().is_admin(user.id)
             return redirect("/")
         return render_template("login.html", error="Wrong email or password.")
     return render_template("login.html", error=None)
@@ -95,6 +116,7 @@ def login():
 def logout():
     session.clear()
     return redirect("/")
+
 
 @app.route("/post", methods=["GET", "POST"])
 def post_experience():
@@ -121,6 +143,7 @@ def post_experience():
 
     return render_template("post.html")
 
+
 @app.route("/post/<int:experience_id>/rounds/<int:round_number>", methods=["GET", "POST"])
 def add_rounds(experience_id, round_number):
     if "user_id" not in session:
@@ -130,7 +153,7 @@ def add_rounds(experience_id, round_number):
 
     if request.method == "POST":
         round_type = request.form.get("round_type")
-        questions_text = request.form.get("questions")
+        questions_text = request.form.get("questions") or ""
         action = request.form.get("action")
 
         round_id = add_round(
@@ -180,10 +203,67 @@ def comment(experience_id):
         )
     return redirect(url_for("experiences", company=company))
 
+
 @app.route("/leaderboard")
 def leaderboard():
     top_users = get_leaderboard()
     return render_template("leaderboard.html", top_users=top_users)
+
+
+# ---------------- Admin ----------------
+
+ADMIN_SECTIONS = ["experiences", "questions", "comments", "likes", "users", "companies"]
+
+KIND_TO_SECTION = {
+    "experience": "experiences",
+    "question": "questions",
+    "comment": "comments",
+    "like": "likes",
+    "user": "users",
+    "company": "companies",
+}
+
+
+@app.route("/admin")
+@admin_required
+def admin():
+    return render_template("admin.html", section="overview", counts=AdminDAO().get_counts(), rows=[])
+
+
+@app.route("/admin/<section>")
+@admin_required
+def admin_section(section):
+    if section not in ADMIN_SECTIONS:
+        abort(404)
+    rows = AdminDAO().list_section(section)
+    return render_template("admin.html", section=section, rows=rows, counts={})
+
+
+@app.route("/admin/delete/<kind>/<int:item_id>", methods=["POST"])
+@admin_required
+def admin_delete(kind, item_id):
+    if kind not in KIND_TO_SECTION:
+        abort(404)
+    if kind == "user" and item_id == session["user_id"]:
+        return redirect("/admin/users")
+    AdminDAO().delete_item(kind, item_id)
+    return redirect("/admin/" + KIND_TO_SECTION[kind])
+
+
+@app.route("/admin/user/<int:user_id>/role", methods=["POST"])
+@admin_required
+def admin_set_role(user_id):
+    if user_id != session["user_id"]:
+        AdminDAO().set_admin(user_id, request.form.get("make_admin") == "1")
+    return redirect("/admin/users")
+
+
+@app.route("/admin/recalculate", methods=["POST"])
+@admin_required
+def admin_recalculate():
+    AdminDAO().recalculate_points()
+    return redirect("/admin")
+
 
 if __name__ == "__main__":
     from livereload import Server

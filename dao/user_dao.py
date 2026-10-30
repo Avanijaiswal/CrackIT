@@ -1,5 +1,6 @@
 from database.connection import Database
 from models.user import User
+from mysql.connector import Error
 
 
 class UserDAO:
@@ -120,6 +121,43 @@ class UserDAO:
         """
         try:
             cursor.execute(query, (limit,))
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
+
+    def is_admin(self, user_id):
+        db = Database()
+        conn = db.connect()
+        if conn is None:
+            return False
+
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT is_admin FROM users WHERE id = %s", (user_id,))
+            row = cursor.fetchone()
+            return bool(row and row[0])
+        except Error as e:
+            print(f"Could not check admin status: {e}")
+            return False
+        finally:
+            cursor.close()
+            conn.close()
+
+    def find_all(self):
+        db = Database()
+        conn = db.connect()
+        if conn is None:
+            return []
+
+        cursor = conn.cursor(dictionary=True)
+        query = """
+            SELECT id, name, email, contributor_score, is_admin
+            FROM users
+            ORDER BY id DESC
+        """
+        try:
+            cursor.execute(query)
             return cursor.fetchall()
         finally:
             cursor.close()
