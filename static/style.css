@@ -602,3 +602,26 @@ a.stat:hover { transform: translateY(-2px); }
         flex-wrap: wrap;
     }
 }
+
+.question-text {
+    white-space: pre-line;
+    flex: 1;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--ink);
+    overflow-wrap: anywhere;
+}
+
+.question-item {
+    display: block;
+    padding: 16px 18px;
+    background: #faf8f4;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    margin-bottom: 12px;
+}
+
+.question-topic {
+    display: inline-block;
+    margin-top: 10px;
+}
