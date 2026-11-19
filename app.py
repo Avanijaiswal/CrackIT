@@ -164,10 +164,64 @@ def add_rounds(experience_id, round_number):
         if round_id is None:
             return "Could not save this round."
 
-        for line in questions_text.splitlines():
-            line = line.strip().lstrip("•*-– ").strip()
-            if line:
-                add_question(round_id=round_id, question_text=line)
+        
+import re
+
+lines = [
+    line.strip().lstrip("•*-– ").strip()
+    for line in questions_text.splitlines()
+    if line.strip()
+]
+
+groups = []
+
+# Check whether the input uses question numbers like Q1, Q2, Q3.
+has_question_numbers = any(
+    re.match(r"^Q(?:uestion)?\s*\d+\s*[.):\-]", line, re.IGNORECASE)
+    for line in lines
+)
+
+current_question = []
+
+for line in lines:
+    is_new_question = bool(
+        re.match(
+            r"^Q(?:uestion)?\s*\d+\s*[.):\-]",
+            line,
+            re.IGNORECASE
+        )
+    )
+
+    is_option = bool(
+        re.match(r"^[A-Da-d]\s*[).:-]", line)
+    )
+
+    if has_question_numbers:
+        if is_new_question:
+            if current_question:
+                groups.append("\n".join(current_question))
+            current_question = [line]
+        elif current_question:
+            current_question.append(line)
+        else:
+            current_question = [line]
+
+    else:
+        if is_option and current_question:
+            current_question.append(line)
+        else:
+            if current_question:
+                groups.append("\n".join(current_question))
+            current_question = [line]
+
+if current_question:
+    groups.append("\n".join(current_question))
+
+for question in groups:
+    add_question(
+        round_id=round_id,
+        question_text=question
+    )
 
         if action == "another":
             return redirect(url_for("add_rounds", experience_id=experience_id,
