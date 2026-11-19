@@ -44,17 +44,41 @@
             </div>
 
             {% for r in e.rounds %}
-                <div class="round">
-                    <h4>Round {{ r.round_number }} <span class="round-type t-{{ r.round_type|lower }}">{{ r.round_type }}</span></h4>
-                    <ul>
-                        {% for q in r.questions %}
-                            <li>{{ q.question_text }} <small>{{ q.topic }}</small></li>
-                        {% else %}
-                            <li class="meta">No questions listed.</li>
-                        {% endfor %}
-                    </ul>
+    <div class="round">
+
+        <div class="round-heading">
+            <h4>Round {{ r.round_number }}</h4>
+            <span class="round-type t-{{ r.round_type|lower }}">
+                {{ r.round_type }}
+            </span>
+        </div>
+
+        <div class="question-list">
+            {% for q in r.questions %}
+
+                <div class="question-item">
+
+                    <p class="question-text">
+                        {{ q.question_text }}
+                    </p>
+
+                    {% if q.topic %}
+                        <span class="question-topic">
+                            {{ q.topic }}
+                        </span>
+                    {% endif %}
+
                 </div>
+
+            {% else %}
+
+                <p class="no-questions">No questions listed.</p>
+
             {% endfor %}
+        </div>
+
+    </div>
+{% endfor %}
 
             {% if comments %}
                 <details class="comments">
