@@ -165,7 +165,7 @@ def add_rounds(experience_id, round_number):
             return "Could not save this round."
 
         for line in questions_text.splitlines():
-            line = line.strip()
+            line = line.strip().lstrip("•*-– ").strip()
             if line:
                 add_question(round_id=round_id, question_text=line)
 
